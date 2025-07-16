@@ -131,6 +131,38 @@ function handleChangePage(input) {
   }
 }
 
+function getMimeType(filename) {
+  const ext = path.extname(filename).toLowerCase();
+  switch (ext) {
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg';
+    case '.png':
+      return 'image/png';
+    case '.webp':
+      return 'image/webp';
+    case '.gif':
+      return 'image/gif';
+    default:
+      return 'application/octet-stream';
+  }
+}
+
+function fileToDataUrlWithName(filePath) {
+  try {
+    const mimeType = getMimeType(filePath);
+    const buffer = fs.readFileSync(filePath);
+    const base64 = buffer.toString('base64');
+    const dataUrl = `data:${mimeType};base64,${base64}`;
+    const name = path.basename(filePath);
+    console.log(`[fileToDataUrlWithName] Success: ${filePath} (dataUrl length: ${dataUrl.length})`);
+    return { src: dataUrl, name };
+  } catch (e) {
+    console.warn(`[fileToDataUrlWithName] Failed: ${filePath}`, e);
+    return null;
+  }
+}
+
 function sendArgs(pathArr) {
   folderMode = false;
   fileMode = false;
@@ -161,8 +193,13 @@ function sendArgs(pathArr) {
       let dirent;
       while ((dirent = dir.readSync()) !== null) {
         if (/\.(jpeg|jpg|png|webp|gif)$/.test(dirent.name)) {
-          console.log(path.resolve(p, dirent.name));
-          fileListPerFolder[p].push(path.resolve(p, dirent.name));
+          const filePath = path.resolve(p, dirent.name);
+          const obj = fileToDataUrlWithName(filePath);
+          if (obj) {
+            fileListPerFolder[p].push(obj);
+          } else {
+            console.warn(`[sendArgs] Skipped invalid image: ${filePath}`);
+          }
         }
       }
       dir.closeSync();
@@ -170,11 +207,23 @@ function sendArgs(pathArr) {
         lastIndex = fileListPerFolder[p].length - 1;
       }
     });
-
+    console.log('[sendArgs] Folder mode, sending images:', getCurrentFilesForFolderMode().length);
     win.webContents.send('send-args-replace', getCurrentFilesForFolderMode());
 
   } else if (fileMode) {
-    win.webContents.send('send-args-append', pathArr);
+    // For file mode, convert each file to data URL + name object
+    const objs = pathArr.map(p => {
+      if (fs.existsSync(p) && fs.lstatSync(p).isFile()) {
+        const obj = fileToDataUrlWithName(p);
+        if (!obj) {
+          console.warn(`[sendArgs] Skipped invalid image: ${p}`);
+        }
+        return obj;
+      }
+      return null;
+    }).filter(Boolean);
+    console.log('[sendArgs] File mode, sending images:', objs.length);
+    win.webContents.send('send-args-append', objs);
   } else {
     // invalid
   }

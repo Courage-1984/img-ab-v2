@@ -282,13 +282,13 @@
 
   window.ipcRenderer?.handleArgsReplace((event, value) => {
     console.log('handleArgsReplace', value);
-    state.allImages = value.filter(f => (/\.(gif|jpe?g|tiff?|png|webp|bmp)$/i).test(f));
+    state.allImages = value.filter(f => f && f.src && f.name);
     initImageIndex();
   });
 
   window.ipcRenderer?.handleArgsAppend((event, value) => {
     console.log('handleArgsAppend', [...state.allImages, ...value]);
-    state.allImages = [...state.allImages, ...value.filter(f => (/\.(gif|jpe?g|tiff?|png|webp|bmp)$/i).test(f))];
+    state.allImages = [...state.allImages, ...value.filter(f => f && f.src && f.name)];
     initImageIndex();
   });
 
@@ -348,9 +348,9 @@
 
   if (typeof window.ipcRenderer === 'undefined') {
     state.allImages = [
-      'https://i.slow.pics/xYGUwqTk.png',
-      'https://i.slow.pics/5SSGI45l.png',
-      'https://wallpaperaccess.com/full/2637581.jpg'
+      { src: 'https://i.slow.pics/xYGUwqTk.png', name: 'Image 1' },
+      { src: 'https://i.slow.pics/5SSGI45l.png', name: 'Image 2' },
+      { src: 'https://wallpaperaccess.com/full/2637581.jpg', name: 'Image 3' }
     ];
   }
 
@@ -360,11 +360,11 @@
   <main>
     <div class="image-container" ref="imageContainer">
       <span class="info" v-show="state.showInfo">
-        {{ state.selectedImageIndex+1 }}/{{ state.allImages.length }}: {{  state.allImages[state.selectedImageIndex] }}
+        {{ state.selectedImageIndex+1 }}/{{ state.allImages.length }}: {{  state.allImages[state.selectedImageIndex]?.name }}
       </span>
       
       <span class="info-right" v-show="state.showInfo && state.modeSlider">
-        {{ state.selectedOverlayImageIndex+1 }}/{{ state.allImages.length }}: {{  state.allImages[state.selectedOverlayImageIndex] }}
+        {{ state.selectedOverlayImageIndex+1 }}/{{ state.allImages.length }}: {{  state.allImages[state.selectedOverlayImageIndex]?.name }}
       </span>
       <table class="help" v-show="state.showHelp">
         <tbody>
@@ -446,8 +446,8 @@
 
       <div ref="imagePanZoom" class="image-panzoom" :class="{'center': state.modeFitToHeight}" v-if="state.allImages.length > 0">
         <div ref="imageCompare" class="image-compare">
-          <img :src="state.allImages[state.selectedImageIndex]" alt="" :class="{ 'fit-to-height': state.modeFitToHeight, 'fit-to-width': state.modeFitToWidth, 'scale': !state.modeFitToHeight && !state.modeFitToWidth }" />
-          <img :src="state.allImages[state.selectedOverlayImageIndex]" alt=""  />
+          <img :src="state.allImages[state.selectedImageIndex]?.src" alt="" :class="{ 'fit-to-height': state.modeFitToHeight, 'fit-to-width': state.modeFitToWidth, 'scale': !state.modeFitToHeight && !state.modeFitToWidth }" />
+          <img :src="state.allImages[state.selectedOverlayImageIndex]?.src" alt=""  />
         </div>
       </div>
       <div class="welcome-message" v-else>
@@ -533,7 +533,7 @@
       </div>
 
       <div style="display:none">
-        <img v-for="(image, i) in state.allImages" ref="hiddenImages" :src="image" v-show="state.selectedImageIndex === i" :class="{ 'fit-to-height': state.modeFitToHeight, 'fit-to-width': state.modeFitToWidth, 'scale': !state.modeFitToHeight && !state.modeFitToWidth }"/>
+        <img v-for="(image, i) in state.allImages" ref="hiddenImages" :src="image.src" v-show="state.selectedImageIndex === i" :class="{ 'fit-to-height': state.modeFitToHeight, 'fit-to-width': state.modeFitToWidth, 'scale': !state.modeFitToHeight && !state.modeFitToWidth }"/>
       </div>
     </div>
   </main>
