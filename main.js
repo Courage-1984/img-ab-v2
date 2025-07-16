@@ -8,7 +8,7 @@ const screenshotsPath = path.join(require('os').homedir(), "Pictures/img-ab");
 // run this as early in the main process as possible
 if (require('electron-squirrel-startup')) app.quit();
 
-if (!fs.existsSync(screenshotsPath)){
+if (!fs.existsSync(screenshotsPath)) {
   fs.mkdirSync(screenshotsPath);
 }
 
@@ -24,29 +24,30 @@ let newCaptureDir = null;
 
 function currentDateTimeString() {
   function pad2(n) {  // always returns a string
-      return (n < 10 ? '0' : '') + n;
+    return (n < 10 ? '0' : '') + n;
   }
 
   const now = new Date();
 
   return now.getFullYear() +
-          pad2(now.getMonth() + 1) + 
-          pad2(now.getDate()) +
-          pad2(now.getHours()) +
-          pad2(now.getMinutes()) +
-          pad2(now.getSeconds());
+    pad2(now.getMonth() + 1) +
+    pad2(now.getDate()) +
+    pad2(now.getHours()) +
+    pad2(now.getMinutes()) +
+    pad2(now.getSeconds());
 }
 
 function createWindow() {
   win = new BrowserWindow({
     icon: path.join(process.cwd(), "src/assets/logo"),
-    width: 800,
-    height: 600,
+    width: 1200,
+    height: 800,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
     },
-    frame: false,
-    fullscreen: true
+    frame: true,         // Show window controls
+    fullscreen: false,   // Start in windowed mode
+    resizable: true
   });
 
   ipcMain.on('drag-and-drop', (event, pathArr) => {
@@ -62,8 +63,18 @@ function createWindow() {
   win.webContents.on("input-event", (event, input) => {
     if (input.type === 'rawKeyDown') {
       handleChangePage(input);
+      // Add F11 for toggling fullscreen
+      if (input.key === 'F11') {
+        toggleFullscreen();
+      }
     }
   });
+}
+
+function toggleFullscreen() {
+  if (win) {
+    win.setFullScreen(!win.isFullScreen());
+  }
 }
 
 function getCurrentFilesForFolderMode() {
@@ -137,7 +148,7 @@ function sendArgs(pathArr) {
   });
 
   console.log('folderMode', folderMode);
-  
+
   // populate folders and files per folder
   if (folderMode) {
     folderList = [...folderList, ...pathArr];
@@ -188,9 +199,9 @@ if (!gotTheLock) {
 
   // Create win, load the rest of the app, etc...
   app.whenReady().then(() => {
-  
+
     createWindow();
-  
+
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
@@ -278,14 +289,19 @@ ipcMain.on('show-context-menu', (event, state) => {
       }
     },
     { type: 'separator' },
+    {
+      label: 'Toggle Fullscreen (F11)',
+      click: () => { toggleFullscreen(); }
+    },
+    { type: 'separator' },
   ];
 
   state?.allImages?.forEach((image, index) => {
     template.push({
-      label: `${index+1}: ${image}`,
+      label: `${index + 1}: ${image}`,
       type: 'checkbox',
       checked: index === state.selectedImageIndex,
-      click: () => { event.sender.send('context-menu-command', 'select-image', {index: index}) }
+      click: () => { event.sender.send('context-menu-command', 'select-image', { index: index }) }
     });
   });
 
@@ -325,36 +341,36 @@ ipcMain.on('selected-image-for-screenshot', async (event, state) => {
   console.log("save image", path.basename(image));
 
   win.webContents
-  .capturePage()
-  .then((img) => {
-    
-    fs.writeFile(path.join(screenshotsPath, newCaptureDir, `${state.selectedImageIndex+1}_${path.basename(image)}`),
-    img.toPNG(), "base64", function (err) {
-      if (err) throw err;
+    .capturePage()
+    .then((img) => {
 
-      if (state.selectedImageIndex < state.allImages.length - 1) {
-        event.sender.send('context-menu-command', 'select-image', {index: state.selectedImageIndex + 1, forScreenshot: true});
-      }
-    });
-  })
-  .catch((err) => {
+      fs.writeFile(path.join(screenshotsPath, newCaptureDir, `${state.selectedImageIndex + 1}_${path.basename(image)}`),
+        img.toPNG(), "base64", function (err) {
+          if (err) throw err;
+
+          if (state.selectedImageIndex < state.allImages.length - 1) {
+            event.sender.send('context-menu-command', 'select-image', { index: state.selectedImageIndex + 1, forScreenshot: true });
+          }
+        });
+    })
+    .catch((err) => {
       console.log(err);
-  });
+    });
 });
 
 ipcMain.on('selected-image-for-screenshot-slider', async (event, state) => {
   const image = state.allImages[state.selectedImageIndex];
   const overlayImage = state.allImages[state.selectedOverlayImageIndex];
   win.webContents
-  .capturePage()
-  .then((img) => {
-    
-    fs.writeFile(path.join(screenshotsPath, newCaptureDir, `${state.selectedImageIndex+1}_${path.basename(image)}_${path.basename(overlayImage)}`),
-    img.toPNG(), "base64", function (err) {
-      if (err) throw err;
-    });
-  })
-  .catch((err) => {
+    .capturePage()
+    .then((img) => {
+
+      fs.writeFile(path.join(screenshotsPath, newCaptureDir, `${state.selectedImageIndex + 1}_${path.basename(image)}_${path.basename(overlayImage)}`),
+        img.toPNG(), "base64", function (err) {
+          if (err) throw err;
+        });
+    })
+    .catch((err) => {
       console.log(err);
-  });
+    });
 });

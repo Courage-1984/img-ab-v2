@@ -228,6 +228,10 @@
         case "ArrowDown":
             // Down pressed
             break;
+        case "F11":
+          e.preventDefault();
+          window.ipcRenderer?.handleContextMenuCommand(null, "toggle-fullscreen");
+          break;
         case "i":
           handleShowInfo();
           break;
