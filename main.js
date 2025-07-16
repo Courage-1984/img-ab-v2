@@ -332,6 +332,12 @@ ipcMain.on('show-context-menu', (event, state) => {
     },
     { type: 'separator' },
     {
+      label: 'Export as GIF/Video...',
+      click: () => {
+        event.sender.send('context-menu-command', 'export-gif-video');
+      }
+    },
+    {
       label: 'Take Screen Capture of All Images (S)',
       click: () => {
         startScreenCapture(event);
