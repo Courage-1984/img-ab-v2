@@ -4,6 +4,7 @@
   import panzoom from './panzoom';
   import ImageCompare from "./image-compare-viewer";
   import './image-compare-viewer/image-compare-viewer.min.css';
+  import ExportGifVideoModal from './components/ExportGifVideoModal.vue';
 
   const state = reactive({
     allImages: [],
@@ -292,6 +293,9 @@
     initImageIndex();
   });
 
+  const showExportModal = ref(false);
+  const firstTwoImages = computed(() => state.allImages.slice(0, 2));
+
   window.ipcRenderer?.handleContextMenuCommand((event, command, args) => {
     console.log('handleContextMenuCommand', event, command, args);
     switch (command) {
@@ -343,6 +347,9 @@
           }, 100);
         }
         break;
+      case 'export-gif-video':
+        showExportModal.value = true;
+        break;
     }
   });
 
@@ -357,6 +364,7 @@
 </script>
 
 <template>
+  <ExportGifVideoModal v-if="showExportModal" :images="firstTwoImages" @close="showExportModal = false" />
   <main>
     <div class="image-container" ref="imageContainer">
       <span class="info" v-show="state.showInfo">
